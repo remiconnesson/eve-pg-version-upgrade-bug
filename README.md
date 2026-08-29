@@ -2,28 +2,45 @@
 
 Minimal reproduction for parked Eve sessions becoming non-resumable after the Eve runtime is upgraded while using a persistent self-hosted PostgreSQL Workflow world.
 
-## Setup
+## Requirements
 
-Requirements: Node.js 24+, Docker, and a PostgreSQL 16 instance.
+- Node.js 24+
+- Docker
+- `curl`
+- An Eve-compatible AI API key (`AI_GATEWAY_API_KEY` or `ANTHROPIC_API_KEY`)
+- PostgreSQL 16, available through the Docker container expected by the script
+
+Start the local PostgreSQL container if needed:
 
 ```bash
-npm install
-export WORKFLOW_POSTGRES_URL=postgres://eve:eve@localhost:5432/eve_repro
-npx @workflow/world-postgres bootstrap
-npm run build
-npm start
+docker run --name eve-repro-pg \
+  -e POSTGRES_USER=eve \
+  -e POSTGRES_PASSWORD=eve \
+  -e POSTGRES_DB=postgres \
+  -p 5432:5432 \
+  -d postgres:16
 ```
 
-The channel is explicitly configured for unauthenticated local traffic. In production, configure authentication instead.
+## Run the repro
 
-## Reproduction
+The script installs Eve `0.47.2`, creates an isolated database, creates and parks a session, upgrades to Eve `0.47.3`, then resumes the session and checks the durable run status.
 
-1. Run this app with the version in `package.json` and create a session.
-2. Send at least one follow-up message, then leave the session parked.
-3. Stop the app.
-4. Change `eve` and `@workflow/world-postgres` to another version, run `npm install`, bootstrap migrations, build, and start against the same database.
-5. Resume the old session.
+```bash
+export AI_GATEWAY_API_KEY=your-key
+./repro.sh
+```
 
-The old parked run may fail with `SESSION_NOT_RESUMABLE`; the database run records can show `CORRUPTED_EVENT_LOG` because durable step names include the exact Eve package version.
+Expected result:
 
-Do not use a production database. Back it up before testing.
+```text
+Durable run status: failed|CORRUPTED_EVENT_LOG
+PASS: parked session became non-resumable after the Eve version upgrade.
+```
+
+The script cleans up its temporary database when it exits. It leaves logs in a temporary directory, printed at the end. Override the versions or port when needed:
+
+```bash
+OLD_EVE=0.47.1 NEW_EVE=0.47.3 PORT=4225 ./repro.sh
+```
+
+Do not use a production database. The channel accepts unauthenticated local traffic for this repro only; configure authentication in production.
