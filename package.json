@@ -1,0 +1,19 @@
+{
+  "name": "eve-pg-version-upgrade-bug",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "eve dev",
+    "build": "eve build",
+    "start": "eve start"
+  },
+  "dependencies": {
+    "@workflow/world-postgres": "5.0.0-beta.31",
+    "ai": "^7.0.77",
+    "eve": "0.30.8",
+    "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
