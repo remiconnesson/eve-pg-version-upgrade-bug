@@ -63,7 +63,7 @@ resume=$(curl -sS -X POST "http://127.0.0.1:$PORT/eve/v1/session/$session" -H 'c
 echo "Resume response: $resume"
 sleep 5
 
-status=$(docker exec eve-repro-pg psql -U eve -d "$DB" -F '|' -At -c "SELECT status || '|' || COALESCE(error_code, '') FROM workflow.workflow_runs WHERE name = 'workflowEntry'" 2>/dev/null || true)
+status=$(docker exec eve-repro-pg psql -U eve -d "$DB" -F '|' -At -c "SELECT status || '|' || COALESCE(error_code, '') FROM workflow.workflow_runs WHERE name LIKE '%workflowEntry'" 2>/dev/null || true)
 echo "Durable run status: $status"
 grep -q 'failed|CORRUPTED_EVENT_LOG' <<<"$status" || fail "durable run did not reach CORRUPTED_EVENT_LOG"
 echo "PASS: parked session became non-resumable after the Eve version upgrade."
