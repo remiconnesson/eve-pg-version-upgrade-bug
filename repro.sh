@@ -37,11 +37,13 @@ cp -R "$ROOT/agent" "$ROOT/package.json" "$TMP/"
 cd "$TMP"
 
 echo "Testing Eve $OLD_EVE -> $NEW_EVE with world-postgres $WORLD"
-npm install --no-audit --no-fund --save-exact "eve@$OLD_EVE" "@workflow/world-postgres@$WORLD" >/dev/null
+EVE_OLD_TARBALL="$(npm view "eve@$OLD_EVE" dist.tarball)"
+WORLD_TARBALL="$(npm view "@workflow/world-postgres@$WORLD" dist.tarball)"
+npm install --no-audit --no-fund --save-exact "$EVE_OLD_TARBALL" "$WORLD_TARBALL" >/dev/null
 
 docker exec eve-repro-pg psql -U eve -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB" >/dev/null || fail "could not create database"
 export WORKFLOW_POSTGRES_URL="postgres://eve:eve@127.0.0.1:5432/$DB"
-npx --yes --package="@workflow/world-postgres@$WORLD" bootstrap >/dev/null 2>&1 || fail "database bootstrap failed"
+npx --yes --package="$WORLD_TARBALL" bootstrap >/dev/null 2>&1 || fail "database bootstrap failed"
 ./node_modules/.bin/eve build >/dev/null || fail "old build failed"
 start_server
 
@@ -53,7 +55,8 @@ curl -fsS -X POST "http://127.0.0.1:$PORT/eve/v1/session/$session" -H 'content-t
 sleep 8
 stop_server
 
-npm install --no-audit --no-fund --save-exact "eve@$NEW_EVE" >/dev/null
+EVE_NEW_TARBALL="$(npm view "eve@$NEW_EVE" dist.tarball)"
+npm install --no-audit --no-fund --save-exact "$EVE_NEW_TARBALL" >/dev/null
 ./node_modules/.bin/eve build >/dev/null || fail "new build failed"
 start_server
 resume=$(curl -sS -X POST "http://127.0.0.1:$PORT/eve/v1/session/$session" -H 'content-type: application/json' -d '{"message":"What is my favorite city now?"}')
